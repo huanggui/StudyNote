@@ -1,0 +1,50 @@
+
+//定义函数，以块作为参数，其中(void (^)(NSArray *posts, NSError *error))block表示块的声明信息，无返回值
+// 带有两个参数，块名为block
++ (void)globalTimelinePostsWithBlock:(void (^)(NSArray *posts, NSError *error))block {
+    [[AFAppDotNetAPIClient sharedClient] getPath:@"stream/0/posts/stream/global" parameters:nil success:^(AFHTTPRequestOperation *operation, id JSON) {
+        NSArray *postsFromResponse = [JSON valueForKeyPath:@"data"];
+        NSMutableArray *mutablePosts = [NSMutableArray arrayWithCapacity:[postsFromResponse count]];
+        for (NSDictionary *attributes in postsFromResponse) {
+            Post *post = [[Post alloc] initWithAttributes:attributes];
+            [mutablePosts addObject:post];
+        }
+        
+        if (block) {//如果块已经定义，则执行块对应的操作，即转向reload中
+            block([NSArray arrayWithArray:mutablePosts], nil);
+        }
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        if (block) {
+            block([NSArray array], error);
+        }
+    }];
+}
+
+
+- (void)reload:(id)sender {
+    [_activityIndicatorView startAnimating];
+    self.navigationItem.rightBarButtonItem.enabled = NO;
+    
+    //在调用函数的地方定义参数块，这样在被调用的函数中就执行该块
+    [Post globalTimelinePostsWithBlock:^(NSArray *posts, NSError *error) {
+        if (error) {
+            [[[UIAlertView alloc] initWithTitle:NSLocalizedString(@"Error", nil) message:[error localizedDescription] delegate:nil cancelButtonTitle:nil otherButtonTitles:NSLocalizedString(@"OK", nil), nil] show];
+        } else {
+            _posts = posts;
+            [self.tableView reloadData];
+        }
+        
+        [_activityIndicatorView stopAnimating];
+        self.navigationItem.rightBarButtonItem.enabled = YES;
+    }];
+}
+
+
+//所以总结块作为函数参数回调的一般结构如下：
+// 在需要调用块的函数中申明块参数，给出返回类型、(^)、参数列表和块变量名类似函数名用于调用；
+// Function_a:(id)par1 block:(void (^)(id p1, id p2))block{...do something for function_a...}
+//
+// 在调用具有块参数的函数时，实现块的定义并作为实参传递；
+// Function_b { [self Function_a:par1 block:^(id p1, id p2){...do something for block...}];}
+//
+//
