@@ -1,4 +1,3 @@
-
 //定义函数，以块作为参数，其中(void (^)(NSArray *posts, NSError *error))block表示块的声明信息，无返回值
 // 带有两个参数，块名为block
 + (void)globalTimelinePostsWithBlock:(void (^)(NSArray *posts, NSError *error))block {
@@ -42,7 +41,8 @@
 
 //所以总结块作为函数参数回调的一般结构如下：
 // 在需要调用块的函数中申明块参数，给出返回类型、(^)、参数列表和块变量名类似函数名用于调用；
-// Function_a:(id)par1 block:(void (^)(id p1, id p2))block{...do something for function_a...}
+// Function_a:(id)par1 block:(void (^)(id p1, id p2))block{...if(block){ block(p1,p2); }...}
+// 一般都通过最终的gcd操作的结果来决定运行哪个块（success or failure），从而实现不同的操作流程
 //
 // 在调用具有块参数的函数时，实现块的定义并作为实参传递；
 // Function_b { [self Function_a:par1 block:^(id p1, id p2){...do something for block...}];}
